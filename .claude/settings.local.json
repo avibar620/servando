@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(node -e \":*)",
+      "Bash(node:*)",
+      "Bash(mkdir -p \"/c/Users/user/servando/app/[locale]/agent\")",
+      "Bash(cp \"/c/Users/user/servando/app/agent/page.tsx\" \"/c/Users/user/servando/app/[locale]/agent/page.tsx\")",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"taskkill /PID 10252 /F\")",
+      "Bash(cmd /c \"taskkill /IM node.exe /F 2>&1\")"
+    ]
+  }
+}

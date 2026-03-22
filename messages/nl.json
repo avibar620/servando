@@ -1,0 +1,36 @@
+{
+  "common": {
+    "languages": {
+      "he": "עברית",
+      "en": "English",
+      "nl": "Nederlands"
+    },
+    "appName": "Servando"
+  },
+  "login": {
+    "title": "Inloggen",
+    "subtitle": "Slim gespreksbeheersplatform voor bedrijven",
+    "emailLabel": "E-mail",
+    "emailPlaceholder": "uw@email.com",
+    "passwordLabel": "Wachtwoord",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "Tonen",
+    "hidePassword": "Verbergen",
+    "submitButton": "Inloggen",
+    "submitting": "Bezig met inloggen...",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "resetSent": "Wachtwoord-resetlink verzonden naar uw e-mail",
+    "roles": {
+      "admin": "Admin",
+      "agent": "Agent",
+      "client": "Zakelijke klant"
+    },
+    "features": {
+      "title": "Elk gesprek — een gestructureerd dossier",
+      "item1": "Professionele beantwoording in uw bedrijfsnaam",
+      "item2": "Realtime documentatie en opvolging",
+      "item3": "AI voor automatische samenvattingen en follow-ups",
+      "item4": "Flexibel minutenbeheer en abonnementen"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "common": {
+    "languages": {
+      "he": "עברית",
+      "en": "English",
+      "nl": "Nederlands"
+    },
+    "appName": "Servando"
+  },
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Smart call management platform for businesses",
+    "emailLabel": "Email",
+    "emailPlaceholder": "your@email.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "Show",
+    "hidePassword": "Hide",
+    "submitButton": "Sign In",
+    "submitting": "Signing in...",
+    "forgotPassword": "Forgot password?",
+    "resetSent": "Password reset link sent to your email",
+    "roles": {
+      "admin": "Admin",
+      "agent": "Agent",
+      "client": "Business Client"
+    },
+    "features": {
+      "title": "Every call — a structured business case",
+      "item1": "Professional answering in your business name",
+      "item2": "Real-time documentation and tracking",
+      "item3": "AI for automatic summaries and follow-ups",
+      "item4": "Flexible minutes and plan management"
+    }
+  }
+}

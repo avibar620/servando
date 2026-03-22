@@ -1,0 +1,36 @@
+{
+  "common": {
+    "languages": {
+      "he": "עברית",
+      "en": "English",
+      "nl": "Nederlands"
+    },
+    "appName": "Servando"
+  },
+  "login": {
+    "title": "כניסה למערכת",
+    "subtitle": "פלטפורמת ניהול שיחות לעסקים חכמים",
+    "emailLabel": "אימייל",
+    "emailPlaceholder": "your@email.com",
+    "passwordLabel": "סיסמה",
+    "passwordPlaceholder": "••••••••",
+    "showPassword": "הצג",
+    "hidePassword": "הסתר",
+    "submitButton": "כניסה",
+    "submitting": "מתחבר...",
+    "forgotPassword": "שכחת סיסמה?",
+    "resetSent": "קישור לאיפוס נשלח לאימייל",
+    "roles": {
+      "admin": "Admin",
+      "agent": "נציגה",
+      "client": "לקוח עסקי"
+    },
+    "features": {
+      "title": "כל שיחה — תיק עסקי מסודר",
+      "item1": "מענה מקצועי בשם העסק שלך",
+      "item2": "תיעוד ומעקב בזמן אמת",
+      "item3": "AI לסיכומים ופולו-אפ אוטומטי",
+      "item4": "ניהול דקות ומסלולים גמיש"
+    }
+  }
+}
