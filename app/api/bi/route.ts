@@ -35,7 +35,6 @@ async function operations() {
     prisma.missedCall.count({ where: { status: "waiting" } }),
   ]);
 
-  // Calls by day of week and hour (simplified — aggregate from actual calls)
   const calls = await prisma.call.findMany({
     select: { startedAt: true, durationSec: true },
     orderBy: { startedAt: "desc" },
@@ -43,10 +42,10 @@ async function operations() {
   });
 
   // Build heatmap
-  const heatmap = Array.from({ length: 7 }, () => Array(12).fill(0));
+  const heatmap: number[][] = Array.from({ length: 7 }, () => Array(12).fill(0) as number[]);
   for (const c of calls) {
     const d = new Date(c.startedAt);
-    const day = d.getDay(); // 0=Sun
+    const day = d.getDay();
     const hourSlot = Math.floor(d.getHours() / 2);
     heatmap[day][hourSlot]++;
   }
@@ -78,13 +77,13 @@ async function agentsStats() {
     },
   });
 
-  const rows = agents.map((a) => ({
+  const rows = agents.map((a: { name: string; agentStatus: string | null; calls: { durationSec: number }[]; assignedTickets: { id: string }[] }) => ({
     name: a.name,
     status: (a.agentStatus ?? "OFFLINE").toLowerCase(),
     calls: a.calls.length,
     handled: a.assignedTickets.length,
     avgDur: a.calls.length
-      ? Math.round(a.calls.reduce((s, c) => s + c.durationSec, 0) / a.calls.length)
+      ? Math.round(a.calls.reduce((s: number, c: { durationSec: number }) => s + c.durationSec, 0) / a.calls.length)
       : 0,
   }));
 
@@ -105,7 +104,7 @@ async function clientsStats() {
     },
   });
 
-  const rows = businesses.map((b) => ({
+  const rows = businesses.map((b: { name: string; calls: { id: string }[]; tickets: { id: string }[]; minutesUsed: number; minutesTotal: number; plan: { name: string } }) => ({
     name: b.name,
     calls: b.calls.length,
     tickets: b.tickets.length,
@@ -128,7 +127,7 @@ async function revenueStats() {
     orderBy: { createdAt: "desc" },
   });
 
-  const totalRevenue = transactions.reduce((s, t) => s + t.amountNis, 0);
+  const totalRevenue = transactions.reduce((s: number, t: { amountNis: number }) => s + t.amountNis, 0);
 
   // Group by month
   const byMonth: Record<string, number> = {};
@@ -164,8 +163,8 @@ async function contentStats() {
   }
 
   const reasonCodes = Object.entries(reasonCounts)
-    .map(([label, count]) => ({ label, count, pct: Math.round((count / (tickets.length || 1)) * 100) }))
-    .sort((a, b) => b.count - a.count);
+    .map(([label, count]: [string, number]) => ({ label, count, pct: Math.round((count / (tickets.length || 1)) * 100) }))
+    .sort((a: { count: number }, b: { count: number }) => b.count - a.count);
 
   return NextResponse.json({
     tab: "content",
@@ -182,8 +181,8 @@ async function slaStats() {
   });
 
   const total = missedCalls.length;
-  const breaches = missedCalls.filter((m) => m.status === "sla-breach").length;
-  const handled = missedCalls.filter((m) => m.status === "handled").length;
+  const breaches = missedCalls.filter((m: { status: string }) => m.status === "sla-breach").length;
+  const handled = missedCalls.filter((m: { status: string }) => m.status === "handled").length;
 
   // SLA by business
   const bizMap: Record<string, { name: string; threshold: number; total: number; breaches: number; handledTimes: number[] }> = {};
@@ -206,13 +205,13 @@ async function slaStats() {
     }
   }
 
-  const byBusiness = Object.values(bizMap).map((b) => ({
+  const byBusiness = Object.values(bizMap).map((b: { name: string; threshold: number; breaches: number; total: number; handledTimes: number[] }) => ({
     business: b.name,
     threshold: b.threshold,
     breaches: b.breaches,
     compliance: b.total ? Math.round(((b.total - b.breaches) / b.total) * 100) : 100,
     avgCallback: b.handledTimes.length
-      ? Math.round(b.handledTimes.reduce((s, v) => s + v, 0) / b.handledTimes.length)
+      ? Math.round(b.handledTimes.reduce((s: number, v: number) => s + v, 0) / b.handledTimes.length)
       : 0,
   }));
 
