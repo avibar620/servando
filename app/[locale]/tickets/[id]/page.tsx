@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -658,13 +658,87 @@ const TABS: { id: TicketTab; label: string }[] = [
 export default function TicketDetailsPage() {
   const params = useParams();
   const rawId = typeof params.id === "string" ? params.id : "";
-  // Support both "2256" and "#2256" in URL
   const ticketKey = rawId.replace(/^%23/, "#").replace(/^#/, "");
-  const kKey = rawId.startsWith("K") ? rawId : `K${rawId}`;
 
   const [ticket, setTicket] = useState(
     TICKETS[ticketKey] ?? TICKETS[`K${ticketKey}`] ?? TICKETS["2256"]
   );
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Try fetching with # prefix first, then K prefix, then raw
+        const candidates = [
+          `%23${ticketKey}`,      // #XXXX
+          `K${ticketKey}`,        // KXXXX
+          ticketKey,              // raw
+        ];
+
+        for (const id of candidates) {
+          const res = await fetch(`/api/tickets/${id}`);
+          if (res.ok) {
+            const { ticket: t } = await res.json();
+            // Map API response to local shape
+            const statusMap: Record<string, TicketStatus> = { OPEN: "open", IN_PROGRESS: "in-progress", CLOSED: "closed" };
+            const prioMap: Record<string, Priority> = { LOW: "low", NORMAL: "normal", HIGH: "high", URGENT: "urgent" };
+            const fmtDate = (iso: string) => {
+              const d = new Date(iso);
+              return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+            };
+
+            setTicket({
+              id: t.displayId,
+              type: t.type === "REFERRED" ? "referred" : "internal",
+              subject: t.subject,
+              status: statusMap[t.status] ?? "open",
+              priority: prioMap[t.priority] ?? "normal",
+              visibility: t.type === "REFERRED" ? "referred" : "internal",
+              createdAt: fmtDate(t.createdAt),
+              businessName: t.business?.name ?? "",
+              businessType: "",
+              callerName: t.callerName ?? "",
+              callerPhone: t.callerPhone ?? "",
+              callerEmail: t.callerEmail ?? "",
+              notes: t.notes ?? t.aiSummary ?? "",
+              agent: t.agent?.name ?? "",
+              reasonCode: t.reasonCode ?? "",
+              callDuration: "",
+              callStart: "",
+              tasks: (t.tasks ?? []).map((tk: { id: string; text: string; status: string; assignee?: { name: string }; dueDate?: string }) => ({
+                id: tk.id,
+                text: tk.text,
+                status: tk.status === "DONE" ? "done" : "todo",
+                assignedTo: tk.assignee?.name ?? "",
+                dueDate: tk.dueDate ? fmtDate(tk.dueDate) : "",
+              })),
+              aiOutputs: (t.aiOutputs ?? []).map((a: { action: string; label: string; content: string; generatedAt: string }) => ({
+                action: a.action as AiAction,
+                label: a.label,
+                icon: a.action === "summary" ? "📋" : a.action === "owner-msg" ? "📩" : a.action === "email" ? "✉️" : "🔔",
+                content: a.content,
+                generatedAt: fmtDate(a.generatedAt),
+              })),
+              history: (t.history ?? []).map((h: { id: string; createdAt: string; actor: string; action: string; detail?: string }, i: number) => ({
+                id: h.id ?? `h${i}`,
+                ts: fmtDate(h.createdAt),
+                actor: h.actor,
+                action: h.action === "create" ? "תיק נוצר" : h.detail ?? h.action,
+                detail: h.detail,
+                type: h.action as "create" | "update" | "ai" | "note" | "close",
+              })),
+            });
+            break;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch ticket:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [ticketKey]);
 
   function updateTicket(patch: Partial<typeof ticket>) {
     setTicket((prev) => ({ ...prev, ...patch }));
@@ -674,6 +748,17 @@ export default function TicketDetailsPage() {
 
   const taskCount = ticket.tasks.filter((t) => t.status === "todo").length;
   const isInternal = ticket.id.startsWith("K");
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-500 text-sm">טוען כרטיס...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">

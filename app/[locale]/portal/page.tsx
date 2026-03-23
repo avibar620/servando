@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, createContext, useContext } from "react";
+import { usePortalData } from "@/lib/hooks/use-portal-data";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,243 +57,26 @@ interface Transaction {
   status: "paid" | "pending" | "failed";
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Data context ─────────────────────────────────────────────────────────────
 
-const BUSINESS = {
-  name: "מספרת רוני",
-  owner: "רוני לוי",
-  phone: "052-555-1234",
-  address: "רחוב הרצל 12, תל אביב",
-  type: "מספרה ועיצוב שיער",
-  email: "roni@misperet-roni.co.il",
-  website: "www.misperet-roni.co.il",
-  plan: "עסקי",
-  minutesTotal: 120,
-  minutesUsed: 78,
-  minutesRemaining: 42,
-  fallbackNumber: "03-555-9999",
-  servandoNumber: "03-800-1234",
-};
+interface PortalCtx {
+  BUSINESS: { name: string; owner: string; phone: string; address: string; type: string; email: string; website: string; plan: string; minutesTotal: number; minutesUsed: number; minutesRemaining: number; fallbackNumber: string; servandoNumber: string };
+  MY_TICKETS: Ticket[];
+  HANDLED_TICKETS: Ticket[];
+  CALLS: Call[];
+  TRANSACTIONS: Transaction[];
+}
 
-const MY_TICKETS: Ticket[] = [
-  {
-    id: "#2256",
-    type: "referred",
-    subject: "לקוח מעוניין בצביעת שיער",
-    callerName: "שרה כהן",
-    callerPhone: "050-111-2222",
-    status: "open",
-    priority: "high",
-    createdAt: "22/03/2026 14:32",
-    agent: "דנה כהן",
-    summary: "לקוחה שאלה על מחירי צביעה מלאה וגוונים. מעוניינת לקבוע תור לשבוע הבא.",
-  },
-  {
-    id: "#2249",
-    type: "referred",
-    subject: "שאלה על מחיר תספורת נשים",
-    callerName: "מירי לוי",
-    callerPhone: "054-333-4444",
-    status: "in-progress",
-    priority: "normal",
-    createdAt: "21/03/2026 11:15",
-    agent: "יעל שמש",
-    summary: "לקוחה שאלה על מחירים ושעות פעילות ליום שישי.",
-  },
-  {
-    id: "#2241",
-    type: "referred",
-    subject: "תלונה על שירות",
-    callerName: "דוד ברק",
-    callerPhone: "052-777-8888",
-    status: "open",
-    priority: "urgent",
-    createdAt: "20/03/2026 09:47",
-    agent: "דנה כהן",
-    summary: "לקוח ביטא אי-שביעות רצון מתספורת אחרונה. מבקש שיחה חוזרת מהבעלים.",
-  },
-  {
-    id: "#2230",
-    type: "referred",
-    subject: "בקשה לתיאום תור",
-    callerName: "לימור ישראלי",
-    callerPhone: "058-222-3333",
-    status: "closed",
-    priority: "normal",
-    createdAt: "18/03/2026 16:20",
-    agent: "יעל שמש",
-    summary: "לקוחה ביקשה לתאם תור לצביעה ביום שלישי. הועבר פנייה לביצוע.",
-  },
-];
+const PortalContext = createContext<PortalCtx>(null!);
+function usePortal() { return useContext(PortalContext); }
 
-const HANDLED_TICKETS: Ticket[] = [
-  {
-    id: "K2549",
-    type: "internal",
-    subject: "שאלה כללית על שעות פעילות",
-    callerName: "אבי גולן",
-    callerPhone: "050-555-6666",
-    status: "closed",
-    priority: "low",
-    createdAt: "22/03/2026 13:10",
-    agent: "דנה כהן",
-    summary: "לקוח שאל על שעות הפעילות של המספרה בחג. ענינו לו בהתאם למידע העסק.",
-  },
-  {
-    id: "K2541",
-    type: "internal",
-    subject: "שאלה על מחיר פן",
-    callerName: "נעמה דוד",
-    callerPhone: "052-444-5555",
-    status: "closed",
-    priority: "low",
-    createdAt: "21/03/2026 10:05",
-    agent: "יעל שמש",
-    summary: "לקוחה שאלה על מחיר פן וזמינות ליום שני. נמסר מידע ועודדה לקבוע תור.",
-  },
-  {
-    id: "K2535",
-    type: "internal",
-    subject: "שאלה על חניה",
-    callerName: "יוסי כץ",
-    callerPhone: "054-666-7777",
-    status: "closed",
-    priority: "low",
-    createdAt: "20/03/2026 15:30",
-    agent: "דנה כהן",
-    summary: "לקוח שאל על אפשרויות חניה בסביבת המספרה. נמסר מידע על חניה חופשית.",
-  },
-  {
-    id: "K2522",
-    type: "internal",
-    subject: "מידע על מדיניות ביטול תור",
-    callerName: "רינה הלוי",
-    callerPhone: "058-888-9999",
-    status: "closed",
-    priority: "normal",
-    createdAt: "19/03/2026 12:45",
-    agent: "יעל שמש",
-    summary: "לקוחה שאלה על מדיניות ביטול תור. הסברנו שניתן לבטל עד 24 שעות מראש.",
-  },
-  {
-    id: "K2510",
-    type: "internal",
-    subject: "שאלה על שירות גוונים",
-    callerName: "מרים אלון",
-    callerPhone: "050-111-0000",
-    status: "closed",
-    priority: "normal",
-    createdAt: "18/03/2026 08:55",
-    agent: "דנה כהן",
-    summary: "לקוחה שאלה על ההבדל בין גוונים לצביעה מלאה ומחירים. נמסר הסבר מפורט.",
-  },
-];
-
-const CALLS: Call[] = [
-  {
-    id: "C-0891",
-    date: "22/03/2026",
-    time: "14:32",
-    duration: "3:41",
-    callerPhone: "050-111-2222",
-    agent: "דנה כהן",
-    ticketId: "#2256",
-    routing: "servando",
-  },
-  {
-    id: "C-0890",
-    date: "22/03/2026",
-    time: "13:10",
-    duration: "1:55",
-    callerPhone: "050-555-6666",
-    agent: "דנה כהן",
-    ticketId: "K2549",
-    routing: "servando",
-  },
-  {
-    id: "C-0889",
-    date: "21/03/2026",
-    time: "11:15",
-    duration: "2:20",
-    callerPhone: "054-333-4444",
-    agent: "יעל שמש",
-    ticketId: "#2249",
-    routing: "servando",
-  },
-  {
-    id: "C-0888",
-    date: "21/03/2026",
-    time: "10:05",
-    duration: "1:30",
-    callerPhone: "052-444-5555",
-    agent: "יעל שמש",
-    ticketId: "K2541",
-    routing: "servando",
-  },
-  {
-    id: "C-0887",
-    date: "20/03/2026",
-    time: "17:45",
-    duration: "0:00",
-    callerPhone: "053-000-1111",
-    agent: "—",
-    ticketId: null,
-    routing: "missed",
-  },
-  {
-    id: "C-0886",
-    date: "20/03/2026",
-    time: "15:30",
-    duration: "1:10",
-    callerPhone: "054-666-7777",
-    agent: "דנה כהן",
-    ticketId: "K2535",
-    routing: "servando",
-  },
-  {
-    id: "C-0885",
-    date: "20/03/2026",
-    time: "09:47",
-    duration: "4:12",
-    callerPhone: "052-777-8888",
-    agent: "דנה כהן",
-    ticketId: "#2241",
-    routing: "servando",
-  },
-  {
-    id: "C-0884",
-    date: "19/03/2026",
-    time: "12:45",
-    duration: "2:05",
-    callerPhone: "058-888-9999",
-    agent: "יעל שמש",
-    ticketId: "K2522",
-    routing: "servando",
-  },
-  {
-    id: "C-0883",
-    date: "19/03/2026",
-    time: "10:20",
-    duration: "0:00",
-    callerPhone: "050-222-3333",
-    agent: "—",
-    ticketId: null,
-    routing: "fallback",
-  },
-];
+// ─── Shared data ──────────────────────────────────────────────────────────────
 
 const MINUTE_PACKAGES: MinutePackage[] = [
   { id: "pkg-50", name: "חבילה קטנה", minutes: 50, price: 149 },
   { id: "pkg-100", name: "חבילה רגילה", minutes: 100, price: 279, popular: true },
   { id: "pkg-200", name: "חבילה גדולה", minutes: 200, price: 499 },
   { id: "pkg-500", name: "חבילה עסקית", minutes: 500, price: 1099 },
-];
-
-const TRANSACTIONS: Transaction[] = [
-  { id: "TXN-3041", date: "01/03/2026", description: "מסלול עסקי — מרץ 2026", amount: 349, status: "paid" },
-  { id: "TXN-3012", date: "15/02/2026", description: "חבילת 100 דקות נוספות", amount: 279, status: "paid" },
-  { id: "TXN-2989", date: "01/02/2026", description: "מסלול עסקי — פברואר 2026", amount: 349, status: "paid" },
-  { id: "TXN-2951", date: "01/01/2026", description: "מסלול עסקי — ינואר 2026", amount: 349, status: "paid" },
 ];
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -351,6 +135,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────────
 
 function DashboardTab() {
+  const { BUSINESS, MY_TICKETS, HANDLED_TICKETS, CALLS } = usePortal();
   const colors = minutesColor(BUSINESS.minutesRemaining);
   const pct = Math.round((BUSINESS.minutesUsed / BUSINESS.minutesTotal) * 100);
 
@@ -589,6 +374,7 @@ function TicketList({
 // ─── Tab: My Tickets ──────────────────────────────────────────────────────────
 
 function MyTicketsTab() {
+  const { MY_TICKETS } = usePortal();
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
 
   const filtered =
@@ -630,6 +416,7 @@ function MyTicketsTab() {
 // ─── Tab: Handled by Servando ─────────────────────────────────────────────────
 
 function HandledTab() {
+  const { HANDLED_TICKETS } = usePortal();
   return (
     <div className="space-y-4">
       <div>
@@ -661,6 +448,7 @@ function HandledTab() {
 // ─── Tab: Calls ───────────────────────────────────────────────────────────────
 
 function CallsTab() {
+  const { CALLS } = usePortal();
   const routingLabel: Record<string, { label: string; color: string }> = {
     servando: { label: "Servando", color: "bg-emerald-50 text-emerald-700" },
     fallback: { label: "Fallback", color: "bg-amber-50 text-amber-700" },
@@ -733,6 +521,7 @@ function CallsTab() {
 // ─── Tab: Billing ─────────────────────────────────────────────────────────────
 
 function BillingTab() {
+  const { BUSINESS, TRANSACTIONS } = usePortal();
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [purchased, setPurchased] = useState<string | null>(null);
   const colors = minutesColor(BUSINESS.minutesRemaining);
@@ -866,6 +655,7 @@ function BillingTab() {
 // ─── Tab: Business Info ───────────────────────────────────────────────────────
 
 function BusinessInfoTab() {
+  const { BUSINESS } = usePortal();
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
@@ -1074,31 +864,55 @@ function CancelTab() {
   );
 }
 
-// ─── Navigation ───────────────────────────────────────────────────────────────
-
-const TABS: { id: TabId; label: string; icon: string; badge?: number }[] = [
-  { id: "dashboard", label: "דשבורד", icon: "🏠" },
-  {
-    id: "my-tickets",
-    label: "תיקים שלי",
-    icon: "📂",
-    badge: MY_TICKETS.filter((t) => t.status !== "closed").length,
-  },
-  { id: "handled", label: "טופל ע״י Servando", icon: "✅" },
-  { id: "calls", label: "שיחות", icon: "📞" },
-  { id: "billing", label: "חיובים ודקות", icon: "💳" },
-  { id: "business-info", label: "מידע העסק", icon: "🏢" },
-  { id: "cancel", label: "בקשת ביטול", icon: "🚪" },
-];
+// ─── Navigation (moved inside component to access dynamic data) ──────────────
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── Fallback mock data (used while loading) ─────────────────────────────────
+
+const EMPTY_BUSINESS = {
+  name: "...", owner: "...", phone: "", address: "", type: "", email: "",
+  website: "", plan: "", minutesTotal: 0, minutesUsed: 0, minutesRemaining: 0,
+  fallbackNumber: "", servandoNumber: "",
+};
+
 export default function ClientPortalPage() {
+  const portal = usePortalData();
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
 
+  // Map fetched data to existing variable names for minimal changes
+  const BUSINESS = portal.business ?? EMPTY_BUSINESS;
+  const MY_TICKETS = portal.myTickets;
+  const HANDLED_TICKETS = portal.handledTickets;
+  const CALLS = portal.calls;
+  const TRANSACTIONS = portal.transactions;
+
   const colors = minutesColor(BUSINESS.minutesRemaining);
+  const portalCtx = { BUSINESS, MY_TICKETS, HANDLED_TICKETS, CALLS, TRANSACTIONS };
+
+  const TABS: { id: TabId; label: string; icon: string; badge?: number }[] = [
+    { id: "dashboard", label: "דשבורד", icon: "🏠" },
+    { id: "my-tickets", label: "תיקים שלי", icon: "📂", badge: MY_TICKETS.filter((t) => t.status !== "closed").length },
+    { id: "handled", label: "טופל ע״י Servando", icon: "✅" },
+    { id: "calls", label: "שיחות", icon: "📞" },
+    { id: "billing", label: "חיובים ודקות", icon: "💳" },
+    { id: "business-info", label: "מידע העסק", icon: "🏢" },
+    { id: "cancel", label: "בקשת ביטול", icon: "🚪" },
+  ];
+
+  if (portal.loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-500 text-sm">טוען נתונים...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
+    <PortalContext.Provider value={portalCtx}>
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-e border-slate-200 bg-white lg:flex">
@@ -1242,5 +1056,6 @@ export default function ClientPortalPage() {
         </main>
       </div>
     </div>
+    </PortalContext.Provider>
   );
 }

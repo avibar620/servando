@@ -1,0 +1,359 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  AGENT
+  CLIENT
+}
+
+enum BusinessStatus {
+  TRIAL
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum PlanSlug {
+  STARTER
+  GROWTH
+  SCALE
+}
+
+enum TicketType {
+  REFERRED // #XXXX → forwarded to business owner
+  INTERNAL // KXXXX → handled by Servando
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum CaseType {
+  LEAD
+  GENERAL
+  SCHEDULE
+  OWNER_MSG
+}
+
+enum CallRouting {
+  SERVANDO
+  FALLBACK
+  MISSED
+}
+
+enum AgentStatus {
+  ONLINE
+  BUSY
+  OFFLINE
+}
+
+enum FeedbackCategory {
+  BUG
+  SUGGESTION
+  TRAINING
+  TOOLS
+  CLIENT_ISSUE
+  OTHER
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DECLINED
+}
+
+enum FeedbackPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  DONE
+}
+
+enum TransactionStatus {
+  PAID
+  PENDING
+  FAILED
+}
+
+// ─── MODELS ─────────────────────────────────────────────────────────
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String
+  role         Role
+  locale       String       @default("he")
+  agentStatus  AgentStatus?
+  businessId   String?
+  business     Business?    @relation("ClientUser", fields: [businessId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  assignedTickets     Ticket[]       @relation("AgentTickets")
+  calls               Call[]         @relation("AgentCalls")
+  feedbackItems       Feedback[]     @relation("FeedbackAuthor")
+  assignedTasks       TicketTask[]   @relation("TaskAssignee")
+  missedCallsAssigned MissedCall[]   @relation("MissedCallAgent")
+
+  @@index([role])
+  @@index([businessId])
+}
+
+model Plan {
+  id        String   @id @default(cuid())
+  slug      PlanSlug @unique
+  name      String
+  priceNis  Int
+  minutes   Int
+  features  String[]
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  businesses Business[]
+}
+
+model Business {
+  id             String         @id @default(cuid())
+  name           String
+  ownerName      String
+  phone          String
+  email          String
+  address        String?
+  website        String?
+  category       String
+  description    String?
+  status         BusinessStatus @default(TRIAL)
+  planId         String
+  plan           Plan           @relation(fields: [planId], references: [id])
+
+  servandoNumber String?        @unique
+  fallbackNumber String?
+
+  minutesTotal   Int            @default(0)
+  minutesUsed    Int            @default(0)
+
+  slaThresholdMin Int           @default(15)
+
+  onboardingToken String?       @unique
+  onboardingDone  Boolean       @default(false)
+
+  greetingScript String?
+  openingHours   String?
+  closedDays     String[]       @default([])
+  services       Json?
+  faqs           Json?
+  urgentKeywords String?
+
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?
+
+  joinedAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientUsers  User[]        @relation("ClientUser")
+  tickets      Ticket[]
+  calls        Call[]
+  transactions Transaction[]
+  missedCalls  MissedCall[]
+
+  @@index([status])
+}
+
+model Ticket {
+  id         String       @id @default(cuid())
+  displayId  String       @unique
+  type       TicketType
+  caseType   CaseType?
+  subject    String
+  status     TicketStatus @default(OPEN)
+  priority   Priority     @default(NORMAL)
+  reasonCode String?
+
+  callerName  String?
+  callerPhone String?
+  callerEmail String?
+
+  notes        String?
+  aiSummary    String?
+  ownerMessage String?
+
+  preferredDate DateTime?
+  preferredTime String?
+
+  escalated Boolean @default(false)
+
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  agentId    String?
+  agent      User?    @relation("AgentTickets", fields: [agentId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+
+  calls   Call[]
+  tasks   TicketTask[]
+  aiOutputs AiOutput[]
+  history   TicketHistory[]
+
+  @@index([businessId])
+  @@index([agentId])
+  @@index([status])
+  @@index([type])
+}
+
+model TicketTask {
+  id         String     @id @default(cuid())
+  ticketId   String
+  ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  text       String
+  status     TaskStatus @default(TODO)
+  assigneeId String?
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  dueDate    DateTime?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([ticketId])
+}
+
+model AiOutput {
+  id          String   @id @default(cuid())
+  ticketId    String
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  action      String
+  label       String
+  content     String
+  generatedAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model TicketHistory {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor     String
+  action    String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model Call {
+  id          String      @id @default(cuid())
+  displayId   String      @unique
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id])
+  agentId     String?
+  agent       User?       @relation("AgentCalls", fields: [agentId], references: [id])
+  ticketId    String?
+  ticket      Ticket?     @relation(fields: [ticketId], references: [id])
+
+  callerPhone String
+  routing     CallRouting
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int         @default(0)
+  recordingUrl String?
+  transcript   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([businessId])
+  @@index([agentId])
+  @@index([startedAt])
+}
+
+model MissedCall {
+  id               String   @id @default(cuid())
+  phone            String
+  businessId       String
+  business         Business @relation(fields: [businessId], references: [id])
+  receivedAt       DateTime
+  status           String   @default("waiting")
+  assignedToId     String?
+  assignedTo       User?    @relation("MissedCallAgent", fields: [assignedToId], references: [id])
+  notes            String?
+  callbackAttempts Int      @default(0)
+  handledAt        DateTime?
+  createdAt        DateTime @default(now())
+
+  @@index([businessId])
+  @@index([status])
+}
+
+model Transaction {
+  id          String            @id @default(cuid())
+  businessId  String
+  business    Business          @relation(fields: [businessId], references: [id])
+  displayId   String            @unique
+  description String
+  amountNis   Int
+  status      TransactionStatus @default(PENDING)
+  stripePaymentIntentId String?
+  paidAt      DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@index([businessId])
+}
+
+model Feedback {
+  id             String           @id @default(cuid())
+  authorId       String
+  author         User             @relation("FeedbackAuthor", fields: [authorId], references: [id])
+  category       FeedbackCategory
+  priority       FeedbackPriority @default(MEDIUM)
+  status         FeedbackStatus   @default(OPEN)
+  title          String
+  body           String
+  adminReply     String?
+  adminRepliedAt DateTime?
+  upvotes        Int              @default(0)
+  submittedAt    DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  upvoters FeedbackUpvote[]
+
+  @@index([status])
+  @@index([authorId])
+}
+
+model FeedbackUpvote {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@unique([feedbackId, userId])
+}
+
+model Counter {
+  id    String @id
+  value Int    @default(0)
+}

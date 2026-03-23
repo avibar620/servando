@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useContext, createContext } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +177,79 @@ const LOG_ENTRIES: LogEntry[] = [
   { id: "l10", ts: "18/03/2026 08:00", actor: "Admin", action: "מסלול שונה", target: "שיפוצים אלי → פרימיום", level: "info" },
 ];
 
+// ─── Data context ─────────────────────────────────────────────────────────────
+
+interface AdminData {
+  businesses: Business[];
+  agents: Agent[];
+  logEntries: LogEntry[];
+  loading: boolean;
+}
+
+const AdminDataContext = createContext<AdminData>({
+  businesses: BUSINESSES,
+  agents: AGENTS,
+  logEntries: LOG_ENTRIES,
+  loading: false,
+});
+
+function useAdminData() {
+  return useContext(AdminDataContext);
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600" />
+    </div>
+  );
+}
+
+// ─── API → mock-shape mappers ─────────────────────────────────────────────────
+
+function mapApiBusiness(b: Record<string, unknown>): Business {
+  const status = String(b.status ?? "ACTIVE").toLowerCase() as BusinessStatus;
+  const plan = b.plan as Record<string, unknown> | undefined;
+  const minutesTotal = (b.minutesTotal as number) ?? 0;
+  const minutesUsed = (b.minutesUsed as number) ?? 0;
+  return {
+    id: b.id as string,
+    name: b.name as string,
+    owner: (b.ownerName as string) ?? "",
+    phone: (b.phone as string) ?? "",
+    email: (b.email as string) ?? "",
+    type: (b.category as string) ?? "",
+    plan: plan?.name as string ?? "",
+    status,
+    minutesTotal,
+    minutesUsed,
+    minutesRemaining: Math.max(0, minutesTotal - minutesUsed),
+    fallbackNumber: (b.fallbackNumber as string) ?? "",
+    servandoNumber: (b.servandoNumber as string) ?? "",
+    joinedAt: b.joinedAt ? new Date(b.joinedAt as string).toLocaleDateString("he-IL") : "",
+    mrr: plan?.priceNis as number ?? 0,
+    openTickets: 0,
+    callsThisMonth: 0,
+  };
+}
+
+function mapApiAgent(u: Record<string, unknown>): Agent {
+  const statusMap: Record<string, "online" | "busy" | "offline"> = {
+    ONLINE: "online",
+    BUSY: "busy",
+    OFFLINE: "offline",
+  };
+  return {
+    id: u.id as string,
+    name: (u.name as string) ?? "",
+    email: (u.email as string) ?? "",
+    status: statusMap[u.agentStatus as string] ?? "offline",
+    callsToday: 0,
+    avgDuration: "—",
+    ticketsOpen: 0,
+  };
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function minuteStatus(remaining: number, total: number): MinuteStatus {
@@ -254,6 +327,7 @@ function StatCard({
 type BizTab = "overview" | "minutes" | "billing" | "knowledge" | "activity";
 
 function BusinessDetail({ biz, onClose }: { biz: Business; onClose: () => void }) {
+  const { logEntries: LOG_ENTRIES } = useAdminData();
   const [tab, setTab] = useState<BizTab>("overview");
   const [addingMinutes, setAddingMinutes] = useState(false);
   const [minuteInput, setMinuteInput] = useState("30");
@@ -531,6 +605,9 @@ function BusinessDetail({ biz, onClose }: { biz: Business; onClose: () => void }
 // ─── Section: Dashboard ───────────────────────────────────────────────────────
 
 function DashboardSection() {
+  const { businesses: BUSINESSES, agents: AGENTS, loading } = useAdminData();
+  if (loading) return <LoadingSpinner />;
+
   const totalMrr = BUSINESSES.filter((b) => b.status === "active").reduce((s, b) => s + b.mrr, 0);
   const active = BUSINESSES.filter((b) => b.status === "active").length;
   const totalCalls = BUSINESSES.reduce((s, b) => s + b.callsThisMonth, 0);
@@ -616,9 +693,12 @@ function DashboardSection() {
 // ─── Section: Businesses ──────────────────────────────────────────────────────
 
 function BusinessesSection() {
+  const { businesses: BUSINESSES, loading } = useAdminData();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<BusinessStatus | "all">("all");
+
+  if (loading) return <LoadingSpinner />;
 
   const selectedBiz = BUSINESSES.find((b) => b.id === selectedId) ?? null;
 
@@ -710,6 +790,9 @@ function BusinessesSection() {
 // ─── Section: Agents ─────────────────────────────────────────────────────────
 
 function AgentsSection() {
+  const { agents: AGENTS, loading } = useAdminData();
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -760,6 +843,9 @@ function AgentsSection() {
 // ─── Section: Plans ───────────────────────────────────────────────────────────
 
 function PlansSection() {
+  const { businesses: BUSINESSES, loading } = useAdminData();
+  if (loading) return <LoadingSpinner />;
+
   const PLANS = [
     { name: "בסיסי", minutes: 60, price: 199, businesses: BUSINESSES.filter((b) => b.plan === "בסיסי").length },
     { name: "עסקי", minutes: 120, price: 349, businesses: BUSINESSES.filter((b) => b.plan === "עסקי").length },
@@ -791,6 +877,7 @@ function PlansSection() {
 // ─── Section: Logs ────────────────────────────────────────────────────────────
 
 function LogsSection() {
+  const { logEntries: LOG_ENTRIES } = useAdminData();
   const LEVEL_STYLES: Record<string, string> = {
     info: "bg-sky-50 text-sky-700",
     warning: "bg-amber-50 text-amber-700",
@@ -858,11 +945,45 @@ const NAV_ITEMS: { id: AdminSection; label: string; icon: string }[] = [
 
 export default function AdminConsolePage() {
   const [section, setSection] = useState<AdminSection>("dashboard");
+  const [businesses, setBusinesses] = useState<Business[]>(BUSINESSES);
+  const [agents, setAgents] = useState<Agent[]>(AGENTS);
+  const [logEntries] = useState<LogEntry[]>(LOG_ENTRIES);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchData() {
+      try {
+        const [bizRes, agentRes] = await Promise.all([
+          fetch("/api/businesses"),
+          fetch("/api/users?role=AGENT"),
+        ]);
+        if (cancelled) return;
+        if (bizRes.ok) {
+          const { businesses: apiBiz } = await bizRes.json();
+          setBusinesses(apiBiz.map(mapApiBusiness));
+        }
+        if (agentRes.ok) {
+          const { users: apiUsers } = await agentRes.json();
+          setAgents(apiUsers.map(mapApiAgent));
+        }
+      } catch {
+        // keep fallback mock data on error
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchData();
+    return () => { cancelled = true; };
+  }, []);
 
   const activeLabel = NAV_ITEMS.find((n) => n.id === section)?.label ?? "";
   const activeIcon = NAV_ITEMS.find((n) => n.id === section)?.icon ?? "";
 
+  const ctxValue: AdminData = { businesses, agents, logEntries, loading };
+
   return (
+    <AdminDataContext.Provider value={ctxValue}>
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Sidebar */}
       <aside className="hidden w-56 shrink-0 flex-col border-e border-slate-200 bg-white lg:flex">
@@ -923,10 +1044,10 @@ export default function AdminConsolePage() {
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <span className="hidden items-center gap-1 sm:flex">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {AGENTS.filter((a) => a.status !== "offline").length} נציגות פעילות
+              {agents.filter((a) => a.status !== "offline").length} נציגות פעילות
             </span>
             <span className="hidden sm:block">|</span>
-            <span>{BUSINESSES.filter((b) => b.status === "active").length} עסקים פעילים</span>
+            <span>{businesses.filter((b) => b.status === "active").length} עסקים פעילים</span>
           </div>
         </header>
 
@@ -961,5 +1082,6 @@ export default function AdminConsolePage() {
         </main>
       </div>
     </div>
+    </AdminDataContext.Provider>
   );
 }

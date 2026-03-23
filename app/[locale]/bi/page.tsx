@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,14 @@ interface MetricCard {
   positive: boolean; // up is good?
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── BI Data Context ──────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BiContext = createContext<Record<string, any>>({});
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useBi(): Record<string, any> { return useContext(BiContext); }
+
+// ─── Mock Data (fallback) ─────────────────────────────────────────────────────
 
 const HOURS = ["00", "02", "04", "06", "08", "10", "12", "14", "16", "18", "20", "22"];
 const DAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
@@ -131,6 +138,10 @@ function StatusDot({ status }: { status: string }) {
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
 function OperationsTab() {
+  const bi = useBi();
+  const opsData = bi.operations;
+  // Use API heatmap if available, otherwise fallback to mock
+  const heat = opsData?.heatmap ?? heatmapData;
   return (
     <div className="space-y-6">
       {/* KPI row */}
@@ -158,7 +169,7 @@ function OperationsTab() {
               {DAYS.map((day, di) => (
                 <tr key={day}>
                   <td className="text-end text-gray-600 font-medium pe-2 whitespace-nowrap">{day}</td>
-                  {heatmapData[di].map((val, hi) => (
+                  {(heat[di] ?? []).map((val: number, hi: number) => (
                     <td key={hi} className="p-0">
                       <div
                         className={`w-10 h-8 rounded ${heatColor(val)} flex items-center justify-center`}
@@ -653,8 +664,26 @@ const TABS: { id: TabId; label: string }[] = [
 export default function BiPage() {
   const [activeTab, setActiveTab] = useState<TabId>("operations");
   const [range, setRange] = useState<"week" | "month" | "quarter">("month");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [biData, setBiData] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    async function fetchTab() {
+      try {
+        const res = await fetch(`/api/bi?tab=${activeTab}`);
+        if (res.ok) {
+          const data = await res.json();
+          setBiData((prev) => ({ ...prev, [activeTab]: data }));
+        }
+      } catch {
+        // keep mock data
+      }
+    }
+    fetchTab();
+  }, [activeTab]);
 
   return (
+    <BiContext.Provider value={biData}>
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
@@ -715,5 +744,6 @@ export default function BiPage() {
         {activeTab === "sla" && <SlaTab />}
       </main>
     </div>
+    </BiContext.Provider>
   );
 }

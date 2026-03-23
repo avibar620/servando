@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,84 +24,55 @@ interface FeedbackItem {
   upvotedByMe?: boolean;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const INITIAL_ITEMS: FeedbackItem[] = [
-  {
-    id: "f001",
-    agentName: "מיכל כהן",
-    category: "bug",
-    priority: "high",
-    status: "in-review",
-    title: "סיכום AI לא מופיע אחרי שיחה קצרה מ-30 שניות",
-    body: "כשהשיחה נמשכת פחות מ-30 שניות, חלון הסיכום נשאר ריק. ניסיתי להפעיל מחדש אך הבעיה חוזרת.",
-    submittedAt: "היום 09:15",
-    adminReply: "מעבירים לצוות הטכני לבדיקה. נעדכן עד מחר.",
-    adminRepliedAt: "היום 10:02",
-    upvotes: 7,
-  },
-  {
-    id: "f002",
-    agentName: "דני לוי",
-    category: "suggestion",
-    priority: "medium",
-    status: "open",
-    title: "הוספת קיצור מקלדת לפתיחת כרטיס חדש",
-    body: "היה נחמד אם Ctrl+N היה פותח כרטיס חדש ישירות מחלון השיחה, חוסך הרבה קליקים.",
-    submittedAt: "אתמול 16:40",
-    upvotes: 12,
-    upvotedByMe: true,
-  },
-  {
-    id: "f003",
-    agentName: "נועה ברק",
-    category: "training",
-    priority: "medium",
-    status: "resolved",
-    title: "צריך הדרכה על טיפול בלקוחות כועסים",
-    body: "נתקלתי כמה פעמים בשיחות קשות עם לקוחות מתוסכלים ולא ידעתי איך להגיב. סשן הדרכה יעזור.",
-    submittedAt: "22/03 11:30",
-    adminReply: "תזמנו סשן הדרכה ל-25/03 ב-14:00. תקבלי הזמנה למייל.",
-    adminRepliedAt: "22/03 14:15",
-    upvotes: 5,
-  },
-  {
-    id: "f004",
-    agentName: "אבי שמיר",
-    category: "tools",
-    priority: "high",
-    status: "open",
-    title: "כלי החיפוש בהיסטוריית שיחות לאט מאוד",
-    body: "כשאני מחפש שיחות ישנות לפי שם לקוח זה לוקח 5-10 שניות. הייתי מצפה לתוצאות מיידיות.",
-    submittedAt: "21/03 08:50",
-    upvotes: 9,
-  },
-  {
-    id: "f005",
-    agentName: "רנה פרץ",
-    category: "client",
-    priority: "low",
-    status: "declined",
-    title: "מרפאת ד״ר כהן מבקשת שעת סגירה מוקדמת יותר בשישי",
-    body: "הלקוחה ביקשה שנסגור שיחות ב-12:00 בשישי במקום 13:00. האם אפשר לעדכן?",
-    submittedAt: "20/03 17:05",
-    adminReply: "עדכון לוחות זמנים מתבצע דרך פורטל הלקוח. הפנינו את הלקוחה.",
-    adminRepliedAt: "21/03 09:00",
-    upvotes: 1,
-  },
-  {
-    id: "f006",
-    agentName: "מיכל כהן",
-    category: "suggestion",
-    priority: "low",
-    status: "open",
-    title: "אפשרות להוסיף תגיות לשיחות לחיפוש מהיר",
-    body: "אם היינו יכולים לתייג שיחות (כמו ״תלונה״, ״תור״, ״חיוב״) היה הרבה יותר קל לאתר אותן.",
-    submittedAt: "19/03 13:22",
-    upvotes: 15,
-    upvotedByMe: false,
-  },
-];
+const CURRENT_USER_ID = "current-user"; // TODO: replace with real auth user id
+
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const time = date.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+
+  if (diffDays === 0) return `היום ${time}`;
+  if (diffDays === 1) return `אתמול ${time}`;
+  return `${date.toLocaleDateString("he-IL", { day: "2-digit", month: "2-digit" })} ${time}`;
+}
+
+interface ApiItem {
+  id: string;
+  authorId: string;
+  author: { name: string };
+  category: string;
+  priority: string;
+  status: string;
+  title: string;
+  body: string;
+  adminReply: string | null;
+  adminRepliedAt: string | null;
+  upvotes: number;
+  submittedAt: string;
+  upvoters: { userId: string }[];
+}
+
+function mapApiItem(item: ApiItem): FeedbackItem {
+  return {
+    id: item.id,
+    agentName: item.author.name,
+    category: item.category.toLowerCase() as Category,
+    priority: item.priority.toLowerCase() as Priority,
+    status: item.status.toLowerCase().replace("_", "-") as Status,
+    title: item.title,
+    body: item.body,
+    submittedAt: formatDate(item.submittedAt),
+    adminReply: item.adminReply ?? undefined,
+    adminRepliedAt: item.adminRepliedAt ? formatDate(item.adminRepliedAt) : undefined,
+    upvotes: item.upvotes,
+    upvotedByMe: item.upvoters.some((u) => u.userId === CURRENT_USER_ID),
+  };
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -505,7 +476,8 @@ function NewFeedbackModal({ onClose, onSubmit }: { onClose: () => void; onSubmit
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FeedbackPage() {
-  const [items, setItems] = useState<FeedbackItem[]>(INITIAL_ITEMS);
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>("board");
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [filterCategory, setFilterCategory] = useState<Category | "all">("all");
@@ -513,6 +485,23 @@ export default function FeedbackPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const isAdmin = true; // toggle to false for agent view
+
+  const fetchItems = useCallback(async () => {
+    try {
+      const res = await fetch("/api/feedback");
+      if (!res.ok) throw new Error("Failed to fetch feedback");
+      const data = await res.json();
+      setItems((data.items as ApiItem[]).map(mapApiItem));
+    } catch (err) {
+      console.error("Error fetching feedback:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   // Derived
   const filtered = items.filter((i) => {
@@ -525,7 +514,8 @@ export default function FeedbackPage() {
 
   const sorted = [...filtered].sort((a, b) => b.upvotes - a.upvotes);
 
-  function handleUpvote(id: string) {
+  async function handleUpvote(id: string) {
+    // Optimistic update
     setItems((prev) =>
       prev.map((i) =>
         i.id === id
@@ -533,9 +523,24 @@ export default function FeedbackPage() {
           : i
       )
     );
+    try {
+      const res = await fetch(`/api/feedback/${id}/upvote`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to toggle upvote");
+    } catch (err) {
+      console.error("Error toggling upvote:", err);
+      // Revert on failure
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === id
+            ? { ...i, upvotes: i.upvotedByMe ? i.upvotes - 1 : i.upvotes + 1, upvotedByMe: !i.upvotedByMe }
+            : i
+        )
+      );
+    }
   }
 
-  function handleReply(id: string, reply: string) {
+  async function handleReply(id: string, reply: string) {
+    // Optimistic update
     setItems((prev) =>
       prev.map((i) =>
         i.id === id
@@ -543,25 +548,53 @@ export default function FeedbackPage() {
           : i
       )
     );
+    try {
+      const res = await fetch(`/api/feedback/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminReply: reply }),
+      });
+      if (!res.ok) throw new Error("Failed to save reply");
+    } catch (err) {
+      console.error("Error saving reply:", err);
+      fetchItems(); // Re-fetch to restore correct state
+    }
   }
 
-  function handleStatusChange(id: string, status: Status) {
+  async function handleStatusChange(id: string, status: Status) {
+    const prevItems = items;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status } : i)));
+    try {
+      const res = await fetch(`/api/feedback/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+    } catch (err) {
+      console.error("Error updating status:", err);
+      setItems(prevItems); // Revert on failure
+    }
   }
 
-  function handleNewFeedback(f: Partial<FeedbackItem>) {
-    const newItem: FeedbackItem = {
-      id: `f${Date.now()}`,
-      agentName: "אני",
-      category: f.category ?? "other",
-      priority: f.priority ?? "medium",
-      status: "open",
-      title: f.title ?? "",
-      body: f.body ?? "",
-      submittedAt: "עכשיו",
-      upvotes: 0,
-    };
-    setItems((prev) => [newItem, ...prev]);
+  async function handleNewFeedback(f: Partial<FeedbackItem>) {
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: f.title,
+          body: f.body,
+          category: f.category,
+          priority: f.priority,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create feedback");
+      const data = await res.json();
+      setItems((prev) => [mapApiItem(data), ...prev]);
+    } catch (err) {
+      console.error("Error creating feedback:", err);
+    }
   }
 
   const openCount = items.filter((i) => i.status === "open").length;
@@ -604,7 +637,12 @@ export default function FeedbackPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-        {view === "stats" ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
+            <span className="mr-3 text-sm text-gray-500">טוען פניות...</span>
+          </div>
+        ) : view === "stats" ? (
           <StatsView items={items} />
         ) : (
           <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Role = "admin" | "agent" | "client";
 
@@ -11,17 +12,47 @@ const ROLES: { id: Role; label: string; icon: string }[] = [
 ];
 
 export default function LoginPage() {
+  const router = useRouter();
   const [role, setRole] = useState<Role>("agent");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 1500);
+    setError("");
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error === "Invalid credentials" ? "אימייל או סיסמה שגויים" : "שגיאה בהתחברות");
+        setIsLoading(false);
+        return;
+      }
+
+      const { user } = await res.json();
+
+      // Redirect based on role
+      const routes: Record<string, string> = {
+        ADMIN: "/admin",
+        AGENT: "/agent",
+        CLIENT: "/portal",
+      };
+      router.push(routes[user.role] ?? "/");
+    } catch {
+      setError("שגיאת רשת");
+      setIsLoading(false);
+    }
   }
 
   function handleReset(e: React.MouseEvent) {
@@ -139,6 +170,13 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
             {/* Submit */}
             <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +17,7 @@ interface MissedCall {
   assignedTo: string | null;
   notes: string;
   callbackAttempts: number;
+  handledAt: Date | null;
 }
 
 interface BusinessSla {
@@ -27,88 +28,36 @@ interface BusinessSla {
   breachRate: number; // percent
 }
 
-// ─── Mock data (receivedAt = relative to "now") ───────────────────────────────
+// ─── API response types ──────────────────────────────────────────────────────
 
-const NOW = new Date("2026-03-22T15:00:00");
-
-function minsAgo(m: number) {
-  return new Date(NOW.getTime() - m * 60 * 1000);
+interface ApiMissedCall {
+  id: string;
+  phone: string;
+  businessId: string;
+  business: { id: string; name: string; slaThresholdMin: number };
+  receivedAt: string;
+  status: string;
+  assignedToId: string | null;
+  assignedTo: { name: string } | null;
+  notes: string;
+  callbackAttempts: number;
+  handledAt: string | null;
 }
 
-const INITIAL_CALLS: MissedCall[] = [
-  {
-    id: "mc-01",
-    phone: "052-111-2222",
-    businessName: "מספרת רוני",
-    businessId: "biz-01",
-    receivedAt: minsAgo(32),
-    status: "sla-breach",
-    assignedTo: null,
-    notes: "",
-    callbackAttempts: 1,
-  },
-  {
-    id: "mc-02",
-    phone: "054-333-4444",
-    businessName: "קוסמטיקה בת-אל",
-    businessId: "biz-02",
-    receivedAt: minsAgo(18),
-    status: "sla-breach",
-    assignedTo: null,
-    notes: "",
-    callbackAttempts: 0,
-  },
-  {
-    id: "mc-03",
-    phone: "050-555-6666",
-    businessName: "שיפוצים אלי",
-    businessId: "biz-03",
-    receivedAt: minsAgo(7),
-    status: "waiting",
-    assignedTo: null,
-    notes: "",
-    callbackAttempts: 0,
-  },
-  {
-    id: "mc-04",
-    phone: "058-777-8888",
-    businessName: "מספרת רוני",
-    businessId: "biz-01",
-    receivedAt: minsAgo(4),
-    status: "waiting",
-    assignedTo: "דנה כהן",
-    notes: "",
-    callbackAttempts: 0,
-  },
-  {
-    id: "mc-05",
-    phone: "053-999-0000",
-    businessName: "שיפוצים אלי",
-    businessId: "biz-03",
-    receivedAt: minsAgo(61),
-    status: "handled",
-    assignedTo: "יעל שמש",
-    notes: "לקוח קיבל מענה בחזרה",
-    callbackAttempts: 2,
-  },
-  {
-    id: "mc-06",
-    phone: "050-111-3333",
-    businessName: "קוסמטיקה בת-אל",
-    businessId: "biz-02",
-    receivedAt: minsAgo(45),
-    status: "handled",
-    assignedTo: "דנה כהן",
-    notes: "",
-    callbackAttempts: 1,
-  },
-];
-
-const BIZ_SLA: BusinessSla[] = [
-  { id: "biz-01", name: "מספרת רוני", threshold: 15, avgCallback: 11, breachRate: 18 },
-  { id: "biz-02", name: "קוסמטיקה בת-אל", threshold: 10, avgCallback: 19, breachRate: 42 },
-  { id: "biz-03", name: "שיפוצים אלי", threshold: 30, avgCallback: 14, breachRate: 8 },
-];
+function mapApiCall(raw: ApiMissedCall): MissedCall {
+  return {
+    id: raw.id,
+    phone: raw.phone,
+    businessName: raw.business.name,
+    businessId: raw.businessId,
+    receivedAt: new Date(raw.receivedAt),
+    status: raw.status as CallStatus,
+    assignedTo: raw.assignedTo?.name ?? null,
+    notes: raw.notes ?? "",
+    callbackAttempts: raw.callbackAttempts,
+    handledAt: raw.handledAt ? new Date(raw.handledAt) : null,
+  };
+}
 
 const AGENTS = ["דנה כהן", "יעל שמש", "מיכל גל"];
 
@@ -146,7 +95,7 @@ function avgCallbackColor(avg: number, threshold: number) {
 // ─── Row timer cell ───────────────────────────────────────────────────────────
 
 function TimerCell({ since, thresholdMin, status }: { since: Date; thresholdMin: number; status: CallStatus }) {
-  const [now, setNow] = useState(NOW);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (status === "handled") return;
@@ -154,7 +103,7 @@ function TimerCell({ since, thresholdMin, status }: { since: Date; thresholdMin:
     return () => clearInterval(id);
   }, [status]);
 
-  const ms = elapsedMs(since, status === "handled" ? NOW : now);
+  const ms = elapsedMs(since, now);
   const pct = slaPercent(ms, thresholdMin);
   const colors = slaColor(pct);
 
@@ -279,12 +228,73 @@ function SlaSettingsModal({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function MissedCallsPage() {
-  const [calls, setCalls] = useState<MissedCall[]>(INITIAL_CALLS);
+  const [calls, setCalls] = useState<MissedCall[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<CallStatus | "all">("all");
-  const [slaData, setSlaData] = useState<BusinessSla[]>(BIZ_SLA);
+  const [slaData, setSlaData] = useState<BusinessSla[]>([]);
   const [showSlaSettings, setShowSlaSettings] = useState(false);
-  const [now, setNow] = useState(NOW);
+  const [now, setNow] = useState(() => new Date());
   const [flashBanner, setFlashBanner] = useState(true);
+  const notesTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  // Fetch missed calls from API
+  const fetchCalls = useCallback(async () => {
+    try {
+      const res = await fetch("/api/missed-calls");
+      if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
+      const data = await res.json();
+      const mapped = (data.missedCalls as ApiMissedCall[]).map(mapApiCall);
+      setCalls(mapped);
+
+      // Derive SLA data from business info
+      const bizMap = new Map<string, { id: string; name: string; threshold: number }>();
+      for (const raw of data.missedCalls as ApiMissedCall[]) {
+        if (!bizMap.has(raw.businessId)) {
+          bizMap.set(raw.businessId, {
+            id: raw.businessId,
+            name: raw.business.name,
+            threshold: raw.business.slaThresholdMin,
+          });
+        }
+      }
+
+      // Compute avgCallback and breachRate per business from the calls
+      const bizSla: BusinessSla[] = Array.from(bizMap.values()).map((biz) => {
+        const bizCalls = mapped.filter((c) => c.businessId === biz.id);
+        const handledCalls = bizCalls.filter((c) => c.status === "handled" && c.handledAt);
+        const avgCb =
+          handledCalls.length > 0
+            ? Math.round(
+                handledCalls.reduce(
+                  (sum, c) => sum + elapsedMs(c.receivedAt, c.handledAt ?? c.receivedAt) / 60000,
+                  0
+                ) / handledCalls.length
+              )
+            : 0;
+        const breachCount = bizCalls.filter((c) => c.status === "sla-breach").length;
+        const breachRate = bizCalls.length > 0 ? Math.round((breachCount / bizCalls.length) * 100) : 0;
+
+        return {
+          id: biz.id,
+          name: biz.name,
+          threshold: biz.threshold as SlaThreshold,
+          avgCallback: avgCb,
+          breachRate,
+        };
+      });
+      setSlaData(bizSla);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCalls();
+  }, [fetchCalls]);
 
   // Global clock for metrics
   useEffect(() => {
@@ -298,8 +308,40 @@ export default function MissedCallsPage() {
     return () => clearInterval(id);
   }, []);
 
+  // Patch a missed call on the server and update local state
+  async function patchCall(id: string, body: Record<string, unknown>) {
+    const res = await fetch(`/api/missed-calls/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      console.error("PATCH failed", res.status);
+      return;
+    }
+    const data = await res.json();
+    // If server returns the updated call, use it; otherwise apply optimistic update
+    if (data && data.id) {
+      setCalls((prev) => prev.map((c) => (c.id === id ? mapApiCall(data) : c)));
+    }
+  }
+
   function updateCall(id: string, patch: Partial<MissedCall>) {
+    // Optimistic local update
     setCalls((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+
+    // If status changed to handled, send PATCH
+    if (patch.status === "handled") {
+      patchCall(id, { status: "handled" });
+    }
+
+    // If notes changed, debounce the PATCH
+    if (patch.notes !== undefined) {
+      if (notesTimers.current[id]) clearTimeout(notesTimers.current[id]);
+      notesTimers.current[id] = setTimeout(() => {
+        patchCall(id, { notes: patch.notes });
+      }, 500);
+    }
   }
 
   function getThreshold(bizId: string): SlaThreshold {
@@ -317,8 +359,10 @@ export default function MissedCallsPage() {
   const avgCallback =
     handledWithTimes.length > 0
       ? Math.round(
-          handledWithTimes.reduce((s, c) => s + elapsedMs(c.receivedAt, NOW) / 60000, 0) /
-            handledWithTimes.length
+          handledWithTimes.reduce(
+            (s, c) => s + elapsedMs(c.receivedAt, c.handledAt ?? c.receivedAt) / 60000,
+            0
+          ) / handledWithTimes.length
         )
       : 0;
 
@@ -364,7 +408,29 @@ export default function MissedCallsPage() {
         </button>
       </header>
 
-      <main className="p-5 space-y-5">
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600" />
+            <p className="text-sm text-slate-500">טוען שיחות...</p>
+          </div>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="mx-5 mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <p className="font-semibold">שגיאה בטעינת נתונים</p>
+          <p className="mt-1">{error}</p>
+          <button
+            onClick={() => { setLoading(true); fetchCalls(); }}
+            className="mt-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+          >
+            נסה שוב
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && <main className="p-5 space-y-5">
         {/* Metric cards */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
@@ -466,7 +532,7 @@ export default function MissedCallsPage() {
                 ) : (
                   filtered.map((call) => {
                     const threshold = getThreshold(call.businessId);
-                    const ms = elapsedMs(call.receivedAt, call.status === "handled" ? NOW : now);
+                    const ms = elapsedMs(call.receivedAt, call.status === "handled" ? (call.handledAt ?? now) : now);
                     const pct = slaPercent(ms, threshold);
                     const colors = slaColor(pct);
 
@@ -624,7 +690,7 @@ export default function MissedCallsPage() {
             })}
           </div>
         </div>
-      </main>
+      </main>}
 
       {/* SLA settings modal */}
       {showSlaSettings && (
