@@ -52,7 +52,7 @@ async function operations() {
   }
 
   const avgDuration = calls.length
-    ? Math.round(calls.reduce((s: number, c) => s + c.durationSec, 0) / calls.length)
+    ? Math.round(calls.reduce((s: number, c: { durationSec: number }) => s + c.durationSec, 0) / calls.length)
     : 0;
 
   return NextResponse.json({
