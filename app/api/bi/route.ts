@@ -1,13 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/api-helpers";
-
-function getPrisma() {
-  // Lazy import to avoid module-level Prisma initialization during build
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { prisma } = require("@/lib/prisma");
-  return prisma;
-}
 
 export async function GET(req: Request) {
   const { error } = await auth("ADMIN");
@@ -35,7 +29,7 @@ export async function GET(req: Request) {
 }
 
 async function operations() {
-  const prisma = getPrisma();
+
   const [totalCalls, totalTickets, openTickets, missedCalls] = await Promise.all([
     prisma.call.count(),
     prisma.ticket.count(),
@@ -73,7 +67,7 @@ async function operations() {
 }
 
 async function agentsStats() {
-  const prisma = getPrisma();
+
   const agents = await prisma.user.findMany({
     where: { role: "AGENT" },
     select: {
@@ -100,7 +94,7 @@ async function agentsStats() {
 }
 
 async function clientsStats() {
-  const prisma = getPrisma();
+
   const businesses = await prisma.business.findMany({
     where: { status: { in: ["ACTIVE", "TRIAL"] } },
     select: {
@@ -132,7 +126,7 @@ async function clientsStats() {
 }
 
 async function revenueStats() {
-  const prisma = getPrisma();
+
   const transactions = await prisma.transaction.findMany({
     where: { status: "PAID" },
     select: { amountNis: true, createdAt: true, description: true },
@@ -163,7 +157,7 @@ async function revenueStats() {
 }
 
 async function contentStats() {
-  const prisma = getPrisma();
+
   const tickets = await prisma.ticket.findMany({
     select: { reasonCode: true, aiSummary: true, notes: true },
   });
@@ -186,7 +180,7 @@ async function contentStats() {
 }
 
 async function slaStats() {
-  const prisma = getPrisma();
+
   const missedCalls = await prisma.missedCall.findMany({
     include: {
       business: { select: { id: true, name: true, slaThresholdMin: true } },
