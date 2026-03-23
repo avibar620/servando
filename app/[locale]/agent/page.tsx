@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,6 +115,21 @@ function minutesColor(min: number) {
   return "text-red-600 bg-red-50 ring-red-200";
 }
 
+// ─── Agent context (fetched data) ─────────────────────────────────────────────
+
+interface AgentCtx {
+  business: typeof BUSINESS;
+  agentName: string;
+  businessId: string | null;
+}
+
+const AgentContext = createContext<AgentCtx>({
+  business: BUSINESS,
+  agentName: "נציג",
+  businessId: null,
+});
+function useAgent() { return useContext(AgentContext); }
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -136,6 +151,7 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 // ─── Left column: Business info ───────────────────────────────────────────────
 
 function BusinessPanel() {
+  const { business: BUSINESS } = useAgent();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const min = BUSINESS.minutesBalance;
 
@@ -235,11 +251,13 @@ function BusinessPanel() {
 // ─── Middle column: Case form ─────────────────────────────────────────────────
 
 function CasePanel() {
+  const { businessId } = useAgent();
   const [caseType, setCaseType] = useState<CaseType>("lead");
   const [priority, setPriority] = useState<Priority>("normal");
   const [reasonCode, setReasonCode] = useState("");
   const [escalate, setEscalate] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Dynamic form state
   const [callerName, setCallerName] = useState("");
@@ -255,10 +273,51 @@ function CasePanel() {
     setReasonCode("");
   }, [caseType]);
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    if (!businessId) { setSaved(true); setTimeout(() => setSaved(false), 3000); return; }
+
+    setSaving(true);
+    try {
+      const caseTypeMap: Record<CaseType, string> = { lead: "LEAD", general: "GENERAL", schedule: "SCHEDULE", "owner-msg": "OWNER_MSG" };
+      const prioMap: Record<Priority, string> = { low: "LOW", normal: "NORMAL", high: "HIGH", urgent: "URGENT" };
+      const typeVal = caseType === "owner-msg" || caseType === "lead" ? "REFERRED" : "INTERNAL";
+
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: typeVal,
+          caseType: caseTypeMap[caseType],
+          subject: `${reasonCode || caseType} — ${callerName || "לקוח"}`,
+          priority: prioMap[priority],
+          callerName,
+          callerPhone,
+          notes,
+          ownerMessage: ownerMsgText || undefined,
+          businessId,
+          escalated: escalate,
+          reasonCode,
+          preferredDate: preferredDate || undefined,
+          preferredTime: preferredTime || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+        // Reset form
+        setCallerName(""); setCallerPhone(""); setNotes("");
+        setPreferredDate(""); setPreferredTime(""); setOwnerMsgText("");
+        setEscalate(false); setReasonCode("");
+      }
+    } catch {
+      // fallback
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -633,7 +692,53 @@ function AiPanel() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AgentWorkspacePage() {
+  const [agentName, setAgentName] = useState("נציג");
+  const [business, setBusiness] = useState(BUSINESS);
+  const [businessId, setBusinessId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        // Get current agent
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const { user } = await meRes.json();
+          if (user?.name) setAgentName(user.name);
+        }
+
+        // Get first active business (agent workspace picks assigned call — for now load first)
+        const bizRes = await fetch("/api/businesses");
+        if (bizRes.ok) {
+          const { businesses } = await bizRes.json();
+          const first = businesses?.[0];
+          if (first) {
+            setBusinessId(first.id);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const faqs = Array.isArray(first.faqs) ? first.faqs : (first.faqs as any)?.map?.((f: any) => f) ?? BUSINESS.faqs;
+            setBusiness({
+              name: first.name,
+              owner: first.ownerName,
+              phone: first.phone,
+              address: first.address ?? "",
+              type: first.category,
+              minutesBalance: first.minutesTotal - first.minutesUsed,
+              greetingScript: first.greetingScript ?? BUSINESS.greetingScript,
+              prices: BUSINESS.prices, // keep mock prices for now
+              faqs: faqs.length ? faqs : BUSINESS.faqs,
+            });
+          }
+        }
+      } catch {
+        // keep mock data
+      }
+    }
+    load();
+  }, []);
+
+  const ctxValue: AgentCtx = { business, agentName, businessId };
+
   return (
+    <AgentContext.Provider value={ctxValue}>
     <div className="flex min-h-screen flex-col bg-slate-50">
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm">
@@ -650,9 +755,9 @@ export default function AgentWorkspacePage() {
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-600">שלום, דנה</span>
+          <span className="text-sm text-slate-600">שלום, {agentName}</span>
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
-            ד
+            {agentName.charAt(0)}
           </div>
         </div>
       </header>
@@ -675,5 +780,6 @@ export default function AgentWorkspacePage() {
         </aside>
       </main>
     </div>
+    </AgentContext.Provider>
   );
 }
