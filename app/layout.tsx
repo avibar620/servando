@@ -14,8 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Servando",
-  description: "פלטפורמת ניהול Servando",
+  title: {
+    default: "Servando — שירות מענה טלפוני חכם",
+    template: "%s | Servando",
+  },
+  description: "פלטפורמת מענה טלפוני חכם לעסקים קטנים. נציגים אנושיים עונים בשם העסק שלך, יוצרים תיקים ומסכמים שיחות עם AI.",
+  keywords: ["מענה טלפוני", "שירות לקוחות", "עסקים קטנים", "AI", "ניהול שיחות"],
+  openGraph: {
+    title: "Servando — שירות מענה טלפוני חכם",
+    description: "נציגים אנושיים + AI. כל שיחה הופכת לתיק עסקי מסודר.",
+    type: "website",
+  },
 };
 
 export default async function RootLayout({

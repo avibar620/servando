@@ -3,6 +3,8 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/Toast";
 
 export default async function LocaleLayout({
   children,
@@ -24,7 +26,11 @@ export default async function LocaleLayout({
       <div className="fixed end-4 top-4 z-50">
         <LanguageSwitcher />
       </div>
-      {children}
+      <ErrorBoundary>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </ErrorBoundary>
     </NextIntlClientProvider>
   );
 }
