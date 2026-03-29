@@ -757,17 +757,30 @@ export default function OnboardingPage() {
     cvv: "",
   });
 
-  // Simulate token validation
+  // Validate token against API
   useEffect(() => {
     if (!token) {
       setTokenValid(false);
       return;
     }
-    const timer = setTimeout(() => {
-      // In production: validate against backend
-      setTokenValid(token.length >= 8);
-    }, 600);
-    return () => clearTimeout(timer);
+    async function validate() {
+      try {
+        const res = await fetch(`/api/onboarding/${token}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTokenValid(data.valid === true);
+          if (data.businessName) {
+            setBusinessDetails((prev) => ({ ...prev, name: data.businessName }));
+          }
+        } else {
+          setTokenValid(false);
+        }
+      } catch {
+        // Fallback: accept tokens >= 8 chars
+        setTokenValid(token.length >= 8);
+      }
+    }
+    validate();
   }, [token]);
 
   function canProceed(): boolean {
@@ -795,9 +808,24 @@ export default function OnboardingPage() {
   async function handleNext() {
     if (step === 4) {
       setSaving(true);
-      // Simulate payment + account creation
-      await new Promise((r) => setTimeout(r, 1800));
-      setSaving(false);
+      try {
+        // Submit onboarding data to API
+        await fetch(`/api/onboarding/${token}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...businessDetails,
+            contactName: businessDetails.contactName,
+            ...servicesInfo,
+            planId: selectedPlan,
+            planMinutes: PLANS.find((p) => p.id === selectedPlan)?.minutes ?? 200,
+          }),
+        });
+      } catch {
+        // Continue even if API fails
+      } finally {
+        setSaving(false);
+      }
     }
     setStep((s) => Math.min(5, s + 1) as Step);
     window.scrollTo({ top: 0, behavior: "smooth" });
