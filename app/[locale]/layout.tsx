@@ -5,6 +5,7 @@ import { routing } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/Toast";
+import KeyboardShortcuts from "@/components/KeyboardShortcuts";
 
 export default async function LocaleLayout({
   children,
@@ -28,6 +29,7 @@ export default async function LocaleLayout({
       </div>
       <ErrorBoundary>
         <ToastProvider>
+          <KeyboardShortcuts />
           {children}
         </ToastProvider>
       </ErrorBoundary>
