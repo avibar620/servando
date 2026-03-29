@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -400,12 +401,15 @@ export default function MissedCallsPage() {
             Missed Calls Board
           </span>
         </div>
-        <button
-          onClick={() => setShowSlaSettings(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
-        >
-          ⚙ הגדרות SLA
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowSlaSettings(true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+          >
+            ⚙ הגדרות SLA
+          </button>
+          <LogoutButton />
+        </div>
       </header>
 
       {loading && (

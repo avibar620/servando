@@ -1,30 +1,41 @@
 {
   "common": {
-    "languages": {
-      "he": "עברית",
-      "en": "English",
-      "nl": "Nederlands"
-    },
-    "appName": "Servando"
+    "languages": { "he": "עברית", "en": "English", "nl": "Nederlands" },
+    "appName": "Servando",
+    "logout": "Uitloggen",
+    "loading": "Laden...",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "close": "Sluiten",
+    "back": "Terug",
+    "search": "Zoeken...",
+    "noData": "Geen gegevens om weer te geven",
+    "error": "Fout",
+    "retry": "Opnieuw proberen",
+    "notFound": {
+      "title": "Pagina niet gevonden",
+      "description": "De pagina die u zocht bestaat niet of is verplaatst.",
+      "backHome": "Terug naar startpagina"
+    }
   },
   "login": {
     "title": "Inloggen",
     "subtitle": "Slim gespreksbeheersplatform voor bedrijven",
-    "emailLabel": "E-mail",
-    "emailPlaceholder": "uw@email.com",
+    "welcome": "Welkom bij het beheerplatform",
+    "emailLabel": "E-mailadres",
+    "emailPlaceholder": "naam@bedrijf.com",
     "passwordLabel": "Wachtwoord",
-    "passwordPlaceholder": "••••••••",
-    "showPassword": "Tonen",
-    "hidePassword": "Verbergen",
+    "passwordPlaceholder": "Voer wachtwoord in",
     "submitButton": "Inloggen",
     "submitting": "Bezig met inloggen...",
     "forgotPassword": "Wachtwoord vergeten?",
-    "resetSent": "Wachtwoord-resetlink verzonden naar uw e-mail",
-    "roles": {
-      "admin": "Admin",
-      "agent": "Agent",
-      "client": "Zakelijke klant"
-    },
+    "resetSent": "Resetlink verzonden naar uw e-mail ✓",
+    "invalidCredentials": "Ongeldig e-mailadres of wachtwoord",
+    "networkError": "Netwerkfout",
+    "selectRole": "Selecteer rol",
+    "roles": { "admin": "Admin", "agent": "Agent", "client": "Zakelijke klant" },
     "features": {
       "title": "Elk gesprek — een gestructureerd dossier",
       "item1": "Professionele beantwoording in uw bedrijfsnaam",
@@ -32,5 +43,102 @@
       "item3": "AI voor automatische samenvattingen en follow-ups",
       "item4": "Flexibel minutenbeheer en abonnementen"
     }
+  },
+  "admin": {
+    "title": "Admin Console",
+    "dashboard": "Dashboard",
+    "businesses": "Bedrijven",
+    "agents": "Agenten",
+    "plans": "Abonnementen",
+    "logs": "Logs",
+    "missedCalls": "Gemiste oproepen",
+    "billing": "Facturering",
+    "onboarding": "Onboarding",
+    "feedback": "Feedback",
+    "totalBusinesses": "Totaal bedrijven",
+    "activeAgents": "Actieve agenten",
+    "openTickets": "Open tickets",
+    "lowMinutes": "Weinig minuten"
+  },
+  "agent": {
+    "title": "Agent Werkruimte",
+    "hello": "Hallo,",
+    "businessInfo": "Bedrijfsinfo",
+    "caseType": "Casustype",
+    "lead": "Nieuwe lead",
+    "general": "Algemene vraag",
+    "schedule": "Planning",
+    "ownerMsg": "Bericht aan eigenaar",
+    "callerName": "Naam beller",
+    "callerPhone": "Telefoon",
+    "notes": "Notities",
+    "priority": "Prioriteit",
+    "save": "Casus opslaan",
+    "saved": "Succesvol opgeslagen!",
+    "saving": "Opslaan...",
+    "escalate": "Doorverwijzen naar eigenaar",
+    "minutesBalance": "Minutensaldo",
+    "greetingScript": "Begroetingsscript",
+    "faq": "FAQ",
+    "prices": "Prijzen"
+  },
+  "portal": {
+    "title": "Klantenportaal",
+    "dashboard": "Dashboard",
+    "myTickets": "Mijn Tickets",
+    "handledByServando": "Afgehandeld door Servando",
+    "calls": "Oproepen",
+    "billing": "Facturering & Minuten",
+    "businessInfo": "Bedrijfsinfo",
+    "cancelRequest": "Opzegverzoek",
+    "minutesRemaining": "minuten resterend",
+    "minutesUsed": "minuten gebruikt"
+  },
+  "tickets": {
+    "details": "Details",
+    "tasks": "Taken",
+    "aiOutputs": "AI Outputs",
+    "call": "Oproep",
+    "history": "Geschiedenis",
+    "open": "Open",
+    "inProgress": "In behandeling",
+    "closed": "Gesloten",
+    "low": "Laag",
+    "normal": "Normaal",
+    "high": "Hoog",
+    "urgent": "Urgent"
+  },
+  "missedCalls": {
+    "title": "Gemiste Oproepen",
+    "waiting": "Wachtend",
+    "slaBreach": "SLA Overtreding",
+    "handled": "Afgehandeld",
+    "markHandled": "Markeer als afgehandeld",
+    "avgCallback": "Gem. terugbeltijd"
+  },
+  "feedback": {
+    "title": "Agent Feedback Board",
+    "newFeedback": "Nieuwe feedback",
+    "board": "Bord",
+    "stats": "Statistieken",
+    "bug": "Bug",
+    "suggestion": "Suggestie",
+    "training": "Training",
+    "tools": "Tools",
+    "client": "Klant",
+    "other": "Anders"
+  },
+  "bi": {
+    "title": "BI Dashboard",
+    "operations": "Operaties",
+    "agents": "Agenten",
+    "clients": "Klanten",
+    "revenue": "Omzet",
+    "content": "Gespreksinhoud",
+    "sla": "SLA",
+    "week": "Week",
+    "month": "Maand",
+    "quarter": "Kwartaal",
+    "export": "Exporteren"
   }
 }

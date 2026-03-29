@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -782,6 +783,8 @@ export default function TicketDetailsPage() {
         <span className="text-slate-300">/</span>
         <TicketBadge id={ticket.id} />
         <span className="hidden truncate text-sm text-slate-500 sm:block">{ticket.subject}</span>
+        <div className="flex-1" />
+        <LogoutButton />
       </header>
 
       <div className="flex">

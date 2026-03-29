@@ -2,6 +2,7 @@
 
 import { useState, createContext, useContext } from "react";
 import { usePortalData } from "@/lib/hooks/use-portal-data";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1019,6 +1020,7 @@ export default function ClientPortalPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
               {BUSINESS.owner.charAt(0)}
             </div>
+            <LogoutButton />
           </div>
         </header>
 

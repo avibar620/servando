@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -632,6 +633,7 @@ export default function FeedbackPage() {
             >
               + פנייה חדשה
             </button>
+            <LogoutButton />
           </div>
         </div>
       </header>

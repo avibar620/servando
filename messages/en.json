@@ -1,30 +1,41 @@
 {
   "common": {
-    "languages": {
-      "he": "עברית",
-      "en": "English",
-      "nl": "Nederlands"
-    },
-    "appName": "Servando"
+    "languages": { "he": "עברית", "en": "English", "nl": "Nederlands" },
+    "appName": "Servando",
+    "logout": "Logout",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "search": "Search...",
+    "noData": "No data to display",
+    "error": "Error",
+    "retry": "Try again",
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you were looking for doesn't exist or has been moved.",
+      "backHome": "Back to home"
+    }
   },
   "login": {
     "title": "Sign In",
     "subtitle": "Smart call management platform for businesses",
-    "emailLabel": "Email",
-    "emailPlaceholder": "your@email.com",
+    "welcome": "Welcome to the management platform",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "name@company.com",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "••••••••",
-    "showPassword": "Show",
-    "hidePassword": "Hide",
+    "passwordPlaceholder": "Enter password",
     "submitButton": "Sign In",
     "submitting": "Signing in...",
     "forgotPassword": "Forgot password?",
-    "resetSent": "Password reset link sent to your email",
-    "roles": {
-      "admin": "Admin",
-      "agent": "Agent",
-      "client": "Business Client"
-    },
+    "resetSent": "Reset link sent to your email ✓",
+    "invalidCredentials": "Invalid email or password",
+    "networkError": "Network error",
+    "selectRole": "Select role",
+    "roles": { "admin": "Admin", "agent": "Agent", "client": "Business Client" },
     "features": {
       "title": "Every call — a structured business case",
       "item1": "Professional answering in your business name",
@@ -32,5 +43,102 @@
       "item3": "AI for automatic summaries and follow-ups",
       "item4": "Flexible minutes and plan management"
     }
+  },
+  "admin": {
+    "title": "Admin Console",
+    "dashboard": "Dashboard",
+    "businesses": "Businesses",
+    "agents": "Agents",
+    "plans": "Plans",
+    "logs": "Logs",
+    "missedCalls": "Missed Calls",
+    "billing": "Billing",
+    "onboarding": "Onboarding",
+    "feedback": "Feedback",
+    "totalBusinesses": "Total businesses",
+    "activeAgents": "Active agents",
+    "openTickets": "Open tickets",
+    "lowMinutes": "Low minutes"
+  },
+  "agent": {
+    "title": "Agent Workspace",
+    "hello": "Hello,",
+    "businessInfo": "Business info",
+    "caseType": "Case type",
+    "lead": "New lead",
+    "general": "General question",
+    "schedule": "Scheduling",
+    "ownerMsg": "Message to owner",
+    "callerName": "Caller name",
+    "callerPhone": "Phone",
+    "notes": "Notes",
+    "priority": "Priority",
+    "save": "Save case",
+    "saved": "Saved successfully!",
+    "saving": "Saving...",
+    "escalate": "Escalate to owner",
+    "minutesBalance": "Minutes balance",
+    "greetingScript": "Greeting script",
+    "faq": "FAQ",
+    "prices": "Prices"
+  },
+  "portal": {
+    "title": "Client Portal",
+    "dashboard": "Dashboard",
+    "myTickets": "My Tickets",
+    "handledByServando": "Handled by Servando",
+    "calls": "Calls",
+    "billing": "Billing & Minutes",
+    "businessInfo": "Business Info",
+    "cancelRequest": "Cancel Request",
+    "minutesRemaining": "minutes remaining",
+    "minutesUsed": "minutes used"
+  },
+  "tickets": {
+    "details": "Details",
+    "tasks": "Tasks",
+    "aiOutputs": "AI Outputs",
+    "call": "Call",
+    "history": "History",
+    "open": "Open",
+    "inProgress": "In Progress",
+    "closed": "Closed",
+    "low": "Low",
+    "normal": "Normal",
+    "high": "High",
+    "urgent": "Urgent"
+  },
+  "missedCalls": {
+    "title": "Missed Calls",
+    "waiting": "Waiting",
+    "slaBreach": "SLA Breach",
+    "handled": "Handled",
+    "markHandled": "Mark as handled",
+    "avgCallback": "Avg callback time"
+  },
+  "feedback": {
+    "title": "Agent Feedback Board",
+    "newFeedback": "New feedback",
+    "board": "Board",
+    "stats": "Statistics",
+    "bug": "Bug",
+    "suggestion": "Suggestion",
+    "training": "Training",
+    "tools": "Tools",
+    "client": "Client",
+    "other": "Other"
+  },
+  "bi": {
+    "title": "BI Dashboard",
+    "operations": "Operations",
+    "agents": "Agents",
+    "clients": "Clients",
+    "revenue": "Revenue",
+    "content": "Call Content",
+    "sla": "SLA",
+    "week": "Week",
+    "month": "Month",
+    "quarter": "Quarter",
+    "export": "Export"
   }
 }

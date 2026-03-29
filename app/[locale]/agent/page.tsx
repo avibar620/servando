@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,16 +118,22 @@ function minutesColor(min: number) {
 
 // ─── Agent context (fetched data) ─────────────────────────────────────────────
 
+interface BizOption { id: string; name: string }
+
 interface AgentCtx {
   business: typeof BUSINESS;
   agentName: string;
   businessId: string | null;
+  allBusinesses: BizOption[];
+  switchBusiness: (id: string) => void;
 }
 
 const AgentContext = createContext<AgentCtx>({
   business: BUSINESS,
   agentName: "נציג",
   businessId: null,
+  allBusinesses: [],
+  switchBusiness: () => {},
 });
 function useAgent() { return useContext(AgentContext); }
 
@@ -151,12 +158,25 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
 // ─── Left column: Business info ───────────────────────────────────────────────
 
 function BusinessPanel() {
-  const { business: BUSINESS } = useAgent();
+  const { business: BUSINESS, allBusinesses, switchBusiness, businessId } = useAgent();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const min = BUSINESS.minutesBalance;
 
   return (
     <div className="flex flex-col gap-3 overflow-y-auto">
+      {/* Business selector */}
+      {allBusinesses.length > 1 && (
+        <select
+          value={businessId ?? ""}
+          onChange={(e) => switchBusiness(e.target.value)}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        >
+          {allBusinesses.map((b) => (
+            <option key={b.id} value={b.id}>{b.name}</option>
+          ))}
+        </select>
+      )}
+
       {/* Business header */}
       <Card>
         <div className="flex items-start gap-3">
@@ -691,41 +711,54 @@ function AiPanel() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapBiz(b: any) {
+  const faqs = Array.isArray(b.faqs) ? b.faqs : BUSINESS.faqs;
+  return {
+    name: b.name,
+    owner: b.ownerName,
+    phone: b.phone,
+    address: b.address ?? "",
+    type: b.category,
+    minutesBalance: b.minutesTotal - b.minutesUsed,
+    greetingScript: b.greetingScript ?? BUSINESS.greetingScript,
+    prices: BUSINESS.prices,
+    faqs: faqs.length ? faqs : BUSINESS.faqs,
+  };
+}
+
 export default function AgentWorkspacePage() {
   const [agentName, setAgentName] = useState("נציג");
   const [business, setBusiness] = useState(BUSINESS);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [allBusinesses, setAllBusinesses] = useState<BizOption[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [bizCache, setBizCache] = useState<Record<string, any>>({});
 
   useEffect(() => {
     async function load() {
       try {
-        // Get current agent
         const meRes = await fetch("/api/auth/me");
         if (meRes.ok) {
           const { user } = await meRes.json();
           if (user?.name) setAgentName(user.name);
         }
 
-        // Get first active business (agent workspace picks assigned call — for now load first)
         const bizRes = await fetch("/api/businesses");
         if (bizRes.ok) {
           const { businesses } = await bizRes.json();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          setAllBusinesses(businesses.map((b: any) => ({ id: b.id, name: b.name })));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const cache: Record<string, any> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          businesses.forEach((b: any) => { cache[b.id] = b; });
+          setBizCache(cache);
+
           const first = businesses?.[0];
           if (first) {
             setBusinessId(first.id);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const faqs = Array.isArray(first.faqs) ? first.faqs : (first.faqs as any)?.map?.((f: any) => f) ?? BUSINESS.faqs;
-            setBusiness({
-              name: first.name,
-              owner: first.ownerName,
-              phone: first.phone,
-              address: first.address ?? "",
-              type: first.category,
-              minutesBalance: first.minutesTotal - first.minutesUsed,
-              greetingScript: first.greetingScript ?? BUSINESS.greetingScript,
-              prices: BUSINESS.prices, // keep mock prices for now
-              faqs: faqs.length ? faqs : BUSINESS.faqs,
-            });
+            setBusiness(mapBiz(first));
           }
         }
       } catch {
@@ -735,7 +768,15 @@ export default function AgentWorkspacePage() {
     load();
   }, []);
 
-  const ctxValue: AgentCtx = { business, agentName, businessId };
+  const switchBusiness = useCallback((id: string) => {
+    const b = bizCache[id];
+    if (b) {
+      setBusinessId(id);
+      setBusiness(mapBiz(b));
+    }
+  }, [bizCache]);
+
+  const ctxValue: AgentCtx = { business, agentName, businessId, allBusinesses, switchBusiness };
 
   return (
     <AgentContext.Provider value={ctxValue}>
@@ -759,6 +800,7 @@ export default function AgentWorkspacePage() {
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
             {agentName.charAt(0)}
           </div>
+          <LogoutButton />
         </div>
       </header>
 

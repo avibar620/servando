@@ -1,30 +1,41 @@
 {
   "common": {
-    "languages": {
-      "he": "עברית",
-      "en": "English",
-      "nl": "Nederlands"
-    },
-    "appName": "Servando"
+    "languages": { "he": "עברית", "en": "English", "nl": "Nederlands" },
+    "appName": "Servando",
+    "logout": "התנתק",
+    "loading": "טוען...",
+    "save": "שמור",
+    "cancel": "ביטול",
+    "delete": "מחק",
+    "edit": "ערוך",
+    "close": "סגור",
+    "back": "חזרה",
+    "search": "חיפוש...",
+    "noData": "אין נתונים להצגה",
+    "error": "שגיאה",
+    "retry": "נסה שנית",
+    "notFound": {
+      "title": "הדף לא נמצא",
+      "description": "הדף שחיפשת לא קיים או שהועבר למיקום אחר.",
+      "backHome": "חזרה לדף הראשי"
+    }
   },
   "login": {
     "title": "כניסה למערכת",
     "subtitle": "פלטפורמת ניהול שיחות לעסקים חכמים",
-    "emailLabel": "אימייל",
-    "emailPlaceholder": "your@email.com",
+    "welcome": "ברוכים הבאים לפלטפורמת הניהול",
+    "emailLabel": "כתובת אימייל",
+    "emailPlaceholder": "name@company.com",
     "passwordLabel": "סיסמה",
-    "passwordPlaceholder": "••••••••",
-    "showPassword": "הצג",
-    "hidePassword": "הסתר",
+    "passwordPlaceholder": "הכנס סיסמה",
     "submitButton": "כניסה",
     "submitting": "מתחבר...",
     "forgotPassword": "שכחת סיסמה?",
-    "resetSent": "קישור לאיפוס נשלח לאימייל",
-    "roles": {
-      "admin": "Admin",
-      "agent": "נציגה",
-      "client": "לקוח עסקי"
-    },
+    "resetSent": "קישור לאיפוס נשלח לאימייל שלך ✓",
+    "invalidCredentials": "אימייל או סיסמה שגויים",
+    "networkError": "שגיאת רשת",
+    "selectRole": "בחר תפקיד",
+    "roles": { "admin": "Admin", "agent": "נציגה", "client": "לקוח עסקי" },
     "features": {
       "title": "כל שיחה — תיק עסקי מסודר",
       "item1": "מענה מקצועי בשם העסק שלך",
@@ -32,5 +43,102 @@
       "item3": "AI לסיכומים ופולו-אפ אוטומטי",
       "item4": "ניהול דקות ומסלולים גמיש"
     }
+  },
+  "admin": {
+    "title": "Admin Console",
+    "dashboard": "דשבורד",
+    "businesses": "עסקים",
+    "agents": "נציגות",
+    "plans": "מסלולים",
+    "logs": "לוגים",
+    "missedCalls": "שיחות שהוחמצו",
+    "billing": "חיובים",
+    "onboarding": "Onboarding",
+    "feedback": "Feedback",
+    "totalBusinesses": "סה\"כ עסקים",
+    "activeAgents": "נציגים פעילים",
+    "openTickets": "תיקים פתוחים",
+    "lowMinutes": "דקות נמוכות"
+  },
+  "agent": {
+    "title": "Agent Workspace",
+    "hello": "שלום,",
+    "businessInfo": "מידע על העסק",
+    "caseType": "סוג תיק",
+    "lead": "ליד חדש",
+    "general": "שאלה כללית",
+    "schedule": "תיאום",
+    "ownerMsg": "הודעה לבעלים",
+    "callerName": "שם המתקשר",
+    "callerPhone": "טלפון",
+    "notes": "הערות",
+    "priority": "עדיפות",
+    "save": "שמור תיק",
+    "saved": "נשמר בהצלחה!",
+    "saving": "שומר...",
+    "escalate": "העבר לבעלים",
+    "minutesBalance": "מאזן דקות",
+    "greetingScript": "נוסח מענה",
+    "faq": "שאלות נפוצות",
+    "prices": "מחירון"
+  },
+  "portal": {
+    "title": "פורטל לקוח",
+    "dashboard": "דשבורד",
+    "myTickets": "תיקים שלי",
+    "handledByServando": "טופל ע\"י Servando",
+    "calls": "שיחות",
+    "billing": "חיובים ודקות",
+    "businessInfo": "מידע העסק",
+    "cancelRequest": "בקשת ביטול",
+    "minutesRemaining": "דקות נותרו",
+    "minutesUsed": "דקות נוצלו"
+  },
+  "tickets": {
+    "details": "פרטים",
+    "tasks": "משימות",
+    "aiOutputs": "פלטי AI",
+    "call": "שיחה",
+    "history": "היסטוריה",
+    "open": "פתוח",
+    "inProgress": "בטיפול",
+    "closed": "סגור",
+    "low": "נמוכה",
+    "normal": "רגילה",
+    "high": "גבוהה",
+    "urgent": "דחוף"
+  },
+  "missedCalls": {
+    "title": "שיחות שהוחמצו",
+    "waiting": "ממתין",
+    "slaBreach": "חריגת SLA",
+    "handled": "טופל",
+    "markHandled": "סמן טופל",
+    "avgCallback": "ממוצע התקשרות חזרה"
+  },
+  "feedback": {
+    "title": "לוח משוב נציגים",
+    "newFeedback": "פנייה חדשה",
+    "board": "לוח",
+    "stats": "סטטיסטיקות",
+    "bug": "באג",
+    "suggestion": "הצעה",
+    "training": "הדרכה",
+    "tools": "כלים",
+    "client": "לקוח",
+    "other": "אחר"
+  },
+  "bi": {
+    "title": "לוח בקרה BI",
+    "operations": "תפעול",
+    "agents": "נציגות",
+    "clients": "לקוחות",
+    "revenue": "הכנסות",
+    "content": "תוכן שיחות",
+    "sla": "SLA",
+    "week": "שבוע",
+    "month": "חודש",
+    "quarter": "רבעון",
+    "export": "ייצוא"
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useContext, createContext } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1048,6 +1049,7 @@ export default function AdminConsolePage() {
             </span>
             <span className="hidden sm:block">|</span>
             <span>{businesses.filter((b) => b.status === "active").length} עסקים פעילים</span>
+            <LogoutButton />
           </div>
         </header>
 

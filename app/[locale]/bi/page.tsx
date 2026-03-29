@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext } from "react";
+import LogoutButton from "@/components/LogoutButton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -709,6 +710,7 @@ export default function BiPage() {
             <button className="ms-2 px-3 py-1.5 rounded-lg text-sm border border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5">
               <span>⬇</span> ייצוא
             </button>
+            <LogoutButton />
           </div>
         </div>
       </header>
