@@ -19,14 +19,18 @@ const PROTECTED: { pattern: RegExp; roles: string[] }[] = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip auth check for login page, API routes, static files
-  if (
-    pathname === "/" ||
-    pathname.match(/^\/(he|en|nl)?$/) ||
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/_next") ||
-    pathname.includes(".")
-  ) {
+  // API routes — skip intl middleware entirely, pass through as-is
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
+  // Static files and Next.js internals — pass through
+  if (pathname.startsWith("/_next") || pathname.includes(".")) {
+    return NextResponse.next();
+  }
+
+  // Login page — no auth needed, just run intl middleware
+  if (pathname === "/" || pathname.match(/^\/(he|en|nl)?$/)) {
     return intlMiddleware(request);
   }
 
@@ -39,7 +43,6 @@ export async function proxy(request: NextRequest) {
   // Verify session
   const token = request.cookies.get("session")?.value;
   if (!token) {
-    // Redirect to login
     const locale = pathname.match(/^\/(he|en|nl)\//)?.[1] ?? "he";
     return NextResponse.redirect(new URL(`/${locale === "he" ? "" : locale}`, request.url));
   }
