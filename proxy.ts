@@ -16,21 +16,46 @@ const PROTECTED: { pattern: RegExp; roles: string[] }[] = [
   { pattern: /\/portal/, roles: ["CLIENT"] },
 ];
 
+// Home screen per role
+const ROLE_HOME: Record<string, string> = {
+  ADMIN: "/admin",
+  AGENT: "/agent",
+  CLIENT: "/portal",
+};
+
+function getLocale(pathname: string): string {
+  return pathname.match(/^\/(he|en|nl)\//)?.[1] ?? "he";
+}
+
+function loginUrl(locale: string): string {
+  return locale === "he" ? "/" : `/${locale}`;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // API routes — skip intl middleware entirely, pass through as-is
+  // API routes — skip intl middleware entirely
   if (pathname.startsWith("/api")) {
     return NextResponse.next();
   }
 
-  // Static files and Next.js internals — pass through
+  // Static files and Next.js internals
   if (pathname.startsWith("/_next") || pathname.includes(".")) {
     return NextResponse.next();
   }
 
-  // Login page — no auth needed, just run intl middleware
+  // Login page — if already logged in, redirect to home screen
   if (pathname === "/" || pathname.match(/^\/(he|en|nl)?$/)) {
+    const token = request.cookies.get("session")?.value;
+    if (token) {
+      const session = await verifyToken(token);
+      if (session) {
+        const locale = getLocale(pathname);
+        const home = ROLE_HOME[session.role] ?? "/";
+        const prefix = locale === "he" ? "" : `/${locale}`;
+        return NextResponse.redirect(new URL(`${prefix}${home}`, request.url));
+      }
+    }
     return intlMiddleware(request);
   }
 
@@ -43,20 +68,20 @@ export async function proxy(request: NextRequest) {
   // Verify session
   const token = request.cookies.get("session")?.value;
   if (!token) {
-    const locale = pathname.match(/^\/(he|en|nl)\//)?.[1] ?? "he";
-    return NextResponse.redirect(new URL(`/${locale === "he" ? "" : locale}`, request.url));
+    return NextResponse.redirect(new URL(loginUrl(getLocale(pathname)), request.url));
   }
 
   const session = await verifyToken(token);
   if (!session) {
-    const locale = pathname.match(/^\/(he|en|nl)\//)?.[1] ?? "he";
-    return NextResponse.redirect(new URL(`/${locale === "he" ? "" : locale}`, request.url));
+    return NextResponse.redirect(new URL(loginUrl(getLocale(pathname)), request.url));
   }
 
-  // Check role
+  // Wrong role — redirect to correct home screen instead of login
   if (!match.roles.includes(session.role)) {
-    const locale = pathname.match(/^\/(he|en|nl)\//)?.[1] ?? "he";
-    return NextResponse.redirect(new URL(`/${locale === "he" ? "" : locale}`, request.url));
+    const locale = getLocale(pathname);
+    const home = ROLE_HOME[session.role] ?? "/";
+    const prefix = locale === "he" ? "" : `/${locale}`;
+    return NextResponse.redirect(new URL(`${prefix}${home}`, request.url));
   }
 
   return intlMiddleware(request);
